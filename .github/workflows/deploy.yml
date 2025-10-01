@@ -1,0 +1,53 @@
+name: Deploy (SCP)
+
+'on':
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install & Build
+        run: |
+          npm ci
+          npm run build
+
+      - name: SSH smoke test
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          HOST:    ${{ secrets.SFTP_HOST }}
+          PORT:    ${{ secrets.SFTP_PORT }}
+          USER:    ${{ secrets.SFTP_USER }}
+        run: |
+          printf '%s\n' "$SSH_KEY" > key.pem
+          sed -i 's/\r$//' key.pem
+          chmod 600 key.pem
+          ssh -i key.pem -p "$PORT" -o BatchMode=yes -o StrictHostKeyChecking=no "$USER@$HOST" 'echo connected'
+
+      # >> asıl yükleme: dist'in İÇERİĞİNİ köke kopyala
+      - name: Upload dist to target root (manual scp)
+        env:
+          SSH_KEY:  ${{ secrets.SSH_KEY }}
+          HOST:     ${{ secrets.SFTP_HOST }}
+          PORT:     ${{ secrets.SFTP_PORT }}
+          USER:     ${{ secrets.SFTP_USER }}
+          DEST:     ${{ secrets.SFTP_DEST }}
+        run: |
+          printf '%s\n' "$SSH_KEY" > key.pem
+          sed -i 's/\r$//' key.pem
+          chmod 600 key.pem
+          # dist/* => DEST (dist klasörü OLUŞTURMADAN)
+          scp -P "$PORT" -i key.pem -o StrictHostKeyChecking=no -r dist/* "$USER@$HOST:$DEST"
