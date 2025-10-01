@@ -1,0 +1,15 @@
+---
+const title = 'Hello — Blog (EN)';
+const BASE = import.meta.env.BASE_URL;
+---
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>{title}</title>
+  </head>
+  <body style="font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; line-height:1.6; padding:2rem;">
+    <h1>{title}</h1>
+    <p>English Homepage.</p>
+    <p><a href={`${BASE}/tr/`}>Türkçe Anasayfa →</a></p>
+  </body>
+</html>
