@@ -1,0 +1,27 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+const BASE = import.meta.env.BASE_URL;
+
+export async function getStaticPaths() {
+  const posts = await getCollection('posts', p => p.data.lang === 'en' && !p.data.draft);
+  return posts.map((p) => {
+    const slug = p.slug.replace(/^en\//, ''); 
+    return { params: { slug }, props: { post: p } };
+  });
+}
+
+const { post } = Astro.props;
+---
+<Base title={post.data.title} lang="en">
+  <h1>{post.data.title}</h1>
+  <p><small>{post.data.pubDate.toISOString().slice(0,10)}</small></p>
+  <article set:html={post.body} />
+  {post.data.translationOf && (
+    <p>Türkçe sürüm:
+      <a href={`${BASE}tr/${post.data.translationOf}/`}>/tr/{post.data.translationOf}</a>
+    </p>
+  )}
+</Base>
+
+
