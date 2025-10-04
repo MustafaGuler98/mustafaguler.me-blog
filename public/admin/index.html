@@ -1,28 +1,33 @@
-<!doctype html>
-<html lang="tr">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="robots" content="noindex" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Decap Admin</title>
-  </head>
-  <body>
-    <!-- Tek bir CDN. Çift yükleme beyaz ekran/“removeChild” hatası yapar -->
-    <script src="https://unpkg.com/decap-cms@3.0.10/dist/decap-cms.js"></script>
+<script>
+/**
+ * Decap bazen postMessage'ı yakalasa bile localStorage yazamıyor.
+ * Bu köprü, gelen "authorization:github:success:..." mesajını alıp
+ * token'ı Decap'in beklediği anahtarla localStorage'a yazar ve sayfayı yeniler.
+ */
+(function () {
+  function handleAuthMessage(e) {
+    try {
+      // Güvenlik: sadece kendi origin'imizden geleni kabul et
+      if (e.origin !== window.location.origin) return;
 
-    <script>
-      // Eski/yanlış cache’i patlat
-      localStorage.removeItem('netlify-cms-user');
-
-      // Panelin config.yml'i dosyadan okumasını ve cache kullanmamasını garantile
-      window.CMS_MANUAL_INIT = true;
-      fetch('config.yml', { cache: 'no-store' })
-        .then(() => {
-          CMS.init({ config: { load_config_file: true } });
-        })
-        .catch((e) => {
-          document.body.innerHTML = '<pre>config.yml okunamadı: ' + e + '</pre>';
-        });
-    </script>
-  </body>
-</html>
+      if (typeof e.data === 'string' && e.data.startsWith('authorization:github:')) {
+        // Beklenen ham string: 'authorization:github:success:{"token":"...","provider":"github"}'
+        var parts = e.data.split(':'); // ["authorization", "github", "success", '{"token":"..."}']
+        var payload = parts.slice(3).join(':'); // JSON kısmı
+        var data = JSON.parse(payload || '{}');
+        if (data.token) {
+          // Decap'in beklediği anahtar: netlify-cms-user
+          localStorage.setItem('netlify-cms-user', JSON.stringify({ token: data.token }));
+          // (Opsiyonel) provider bilgisini saklamak istersen:
+          // localStorage.setItem('netlify-cms-provider', data.provider || 'github');
+          // Yenile ve CMS'i token ile başlat
+          window.location.reload();
+        }
+      }
+    } catch (err) {
+      console.error('Auth bridge error:', err);
+    }
+  }
+  window.addEventListener('message', handleAuthMessage, false);
+})();
+</script>
