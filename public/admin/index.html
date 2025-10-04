@@ -5,20 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex" />
     <title>Decap Admin</title>
-
-    <!-- Tek CDN. İkincisini KESİNLİKLE ekleme -->
-    <script src="https://unpkg.com/decap-cms@3.1.0/dist/decap-cms.js"></script>
+    <!-- Tek CDN -->
+    <script src="https://unpkg.com/decap-cms@3.0.10/dist/decap-cms.js"></script>
   </head>
   <body>
     <script>
-      // Decap otomatik açılışı kapatıyoruz; kendimiz init edeceğiz.
       window.CMS_MANUAL_INIT = true;
 
-      // OAuth popup'tan gelen mesajı yakala ve localStorage'a yaz.
       function handleAuthMessage(e) {
         if (!e || typeof e.data !== "string") return;
         if (!e.data.startsWith("authorization:github:")) return;
-
         try {
           const payload = JSON.parse(e.data.split(":").slice(2).join(":"));
           if (payload && payload.token) {
@@ -33,7 +29,6 @@
       }
       window.addEventListener("message", handleAuthMessage, false);
 
-      // CMS hazır olana kadar güvenli biçimde bekle ve init et.
       (function waitForCMS() {
         if (window.CMS && typeof window.CMS.init === "function") {
           fetch("config.yml", { cache: "no-store" })
