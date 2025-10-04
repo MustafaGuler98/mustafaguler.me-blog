@@ -2,8 +2,6 @@ backend:
   name: github
   repo: mustafaguler98/mustafaguler.me-blog
   branch: main
-
-  # OAuth köprüsü kendi sunucunda çalışıyor:
   base_url: https://mustafaguler.me/blog/admin/oauth
   auth_endpoint: /auth.php
 
@@ -12,9 +10,6 @@ public_folder: "/blog/assets/uploads"
 
 site_url: "https://mustafaguler.me"
 base_url: "/blog"
-
-# İstersen taslak/PR süreci
-# publish_mode: editorial_workflow
 
 collections:
   - name: "posts_tr"

@@ -1,16 +1,20 @@
+# public/blog/admin/oauth/.htaccess
+# Sadece auth.php ve callback.php çalışsın
+<Files "auth.php">
+  Require all granted
+</Files>
 
+<Files "callback.php">
+  Require all granted
+</Files>
+
+# Sır bilgiler burada, dışarı kapalı
 <Files "config.secret.php">
   Require all denied
 </Files>
 
-
+# YAML config'in doğru content-type ile servis edilmesi (Decap için önemli)
 <IfModule mod_mime.c>
   AddType text/yaml .yml
   AddType text/yaml .yaml
-</IfModule>
-
-<IfModule mod_headers.c>
-  <Files "config.yml">
-    Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
-  </Files>
 </IfModule>
