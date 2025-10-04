@@ -1,58 +1,62 @@
 <!doctype html>
 <html lang="tr">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="robots" content="noindex" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Decap Admin</title>
-  </head>
-  <body>
-    <!-- Tek bir CDN — çift yükleme beyaz ekrana neden olur -->
-    <script src="https://unpkg.com/decap-cms@3.0.10/dist/decap-cms.js"></script>
+<head>
+  <meta charset="utf-8" />
+  <meta name="robots" content="noindex" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Decap Admin</title>
+</head>
+<body>
+  <!-- TEK CDN (çift yükleme = beyaz ekran) -->
+  <script src="https://unpkg.com/decap-cms@3.1.9/dist/decap-cms.js"></script>
 
-    <script>
-      // Eski/yanlış cache’i temizle (giriş döngüsü olmasın)
-      localStorage.removeItem('netlify-cms-user');
+  <script>
+    // 1) Eski/bozuk durumları temizle
+    try {
+      localStorage.removeItem('netlify-cms-user');         // Decap hâlâ bu anahtarı kullanıyor
+      sessionStorage.removeItem('netlify-cms-user');       // ihtiyata binaen
+    } catch (e) {}
 
-      // Decap'i manuel başlat (config.yml dosyadan okunacak, cache kapalı)
-      window.CMS_MANUAL_INIT = true;
-      const { initCMS: init } = window; // 3.x ile önerilen çağrı
+    // 2) OAuth popup'ından gelecek mesajı yakala ve token'ı kendimiz kaydedelim
+    function handleAuthMessage(ev) {
+      // Güvenlik: sadece aynı origin'den gelen mesaja cevap ver
+      if (ev.origin !== window.location.origin) return;
 
-      fetch('config.yml', { cache: 'no-store' })
-        .then(r => {
-          if (!r.ok) throw new Error('HTTP ' + r.status);
-          return r.text();
-        })
-        .then(() => {
-          init({ config: { load_config_file: true } });
-        })
-        .catch(e => {
-          document.body.insertAdjacentHTML(
-            'beforeend',
-            `<pre style="padding:1rem;color:#b00">config.yml okunamadı: ${e}</pre>`
-          );
-        });
+      const msg = String(ev.data || '');
+      if (!msg.startsWith('authorization:github:success:')) return;
 
-      // --- Güvenli “yedek” dinleyici: popup token’ı yolladıysa biz de oturum açtıralım
-      window.addEventListener('message', (ev) => {
-        try {
-          if (typeof ev.data !== 'string') return;
-          const prefix = 'authorization:github:success:';
-          if (!ev.data.startsWith(prefix)) return;
-          const payload = JSON.parse(ev.data.slice(prefix.length)); // {token, provider}
-          if (!payload?.token) return;
+      try {
+        const payload = JSON.parse(msg.replace('authorization:github:success:', ''));
+        if (!payload?.token) throw new Error('Token yok');
 
-          // Decap’in beklediği anahtar/format
-          localStorage.setItem(
-            'netlify-cms-user',
-            JSON.stringify({ token: payload.token, provider: payload.provider || 'github' })
-          );
-          // sayfayı yenile — Decap kullanıcıyı yakalayıp UI’ı açar
-          window.location.reload();
-        } catch (err) {
-          console.error('Auth bridge error:', err);
-        }
-      }, false);
-    </script>
-  </body>
+        // Decap'in beklediği anahtar: 'netlify-cms-user'
+        const userObj = { token: payload.token, provider: 'github' };
+        localStorage.setItem('netlify-cms-user', JSON.stringify(userObj));
+
+        // Temizle ve yeniden yükle (Decap oturumu bu defa görecek)
+        window.removeEventListener('message', handleAuthMessage);
+        window.location.reload();
+      } catch (err) {
+        console.error('OAuth payload parse/yerleştirme hatası:', err, ev.data);
+        alert('Giriş sırasında beklenmeyen bir hata oldu (token parse).');
+      }
+    }
+    window.addEventListener('message', handleAuthMessage, false);
+
+    // 3) Config'i dosyadan okut (cache kapalı), sonra CMS'i başlat
+    window.CMS_MANUAL_INIT = true;
+    fetch('config.yml', { cache: 'no-store' })
+      .then(r => {
+        if (!r.ok) throw new Error('config.yml okunamadı: ' + r.status);
+        return r.text();
+      })
+      .then(() => {
+        CMS.init({ config: { load_config_file: true } });
+      })
+      .catch(err => {
+        document.body.innerHTML = '<pre style="padding:16px;color:#c00;">' +
+          (err && err.message ? err.message : err) + '</pre>';
+      });
+  </script>
+</body>
 </html>
