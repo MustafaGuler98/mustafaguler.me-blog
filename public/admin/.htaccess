@@ -1,4 +1,16 @@
 AuthType Basic
-AuthName "Restricted Area"
+AuthName "Restricted"
 AuthUserFile /home/u843157774/domains/mustafaguler.me/public_html/blog/admin/.htpasswd
 Require valid-user
+
+<Files "auth.php">
+  Require all granted
+</Files>
+
+<Files "callback.php">
+  Require all granted
+</Files>
+
+<Files "config.secret.php">
+  Require all denied
+</Files>
