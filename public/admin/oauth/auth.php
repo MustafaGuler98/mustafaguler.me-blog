@@ -2,7 +2,6 @@
 require __DIR__ . '/config.secret.php';
 session_start();
 
-// CSRF için state
 $_SESSION['oauth_state'] = bin2hex(random_bytes(16));
 
 $params = http_build_query([

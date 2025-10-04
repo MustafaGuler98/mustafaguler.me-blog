@@ -7,30 +7,55 @@
     <title>Decap Admin</title>
   </head>
   <body>
-    <!-- TEK CDN (stabil) -->
-    <script src="https://unpkg.com/decap-cms@3.0.10/dist/decap-cms.js"></script>
+    <!-- Tek CDN. Çift script beyaz ekran ve removeChild hatası üretir -->
+    <script src="https://unpkg.com/decap-cms@3.1.0/dist/decap-cms.js"></script>
 
     <script>
-      // Her iki anahtarı da temizle: karışıklığı önle
-      localStorage.removeItem('decap-cms-user');
-      localStorage.removeItem('netlify-cms-user');
+      // Eski/yanlış anahtarları temizle (tam temiz başlangıç)
+      ['decap-cms.user','decap-cms-user','netlify-cms-user'].forEach(k => localStorage.removeItem(k));
 
-      // OAuth callback'inden gelen mesajı dinle
-      window.addEventListener('message', (ev) => {
-        if (ev.origin !== window.location.origin) return;
-        const raw = String(ev.data || '');
-        if (!raw.startsWith('authorization:github:success:')) return;
+      // Decap'ı dosyadan okusun ve cache kullanmasın
+      window.CMS_MANUAL_INIT = true;
+      fetch('config.yml', { cache: 'no-store' })
+        .then(r => {
+          if (!r.ok) throw new Error('config.yml ' + r.status);
+          return r.text();
+        })
+        .then(() => CMS.init({ config: { load_config_file: true } }))
+        .catch(e => { document.body.innerHTML = '<pre>config.yml okunamadı: ' + e + '</pre>'; });
 
+      // *** KRİTİK: OAuth popup mesajını biz de yakalayıp garanti altına alıyoruz ***
+      // Decap kendi handler'ını da çalıştırır, ama biz token'ı iki anahtar adıyla da basıyoruz.
+      function handleAuthMessage(ev) {
         try {
-          const payload = JSON.parse(raw.replace('authorization:github:success:', ''));
-          // 3.0.x sürümü bu anahtarı okur
-          localStorage.setItem('netlify-cms-user', JSON.stringify({ token: payload.token }));
-          localStorage.setItem('netlify-cms-provider', 'github');
-          window.location.reload();
+          // yalnızca aynı origin'den gelen mesajı kabul et
+          if (ev.origin !== window.location.origin) return;
+
+          const msg = String(ev.data || '');
+          if (!msg.startsWith('authorization:github:success:')) return;
+
+          const payload = JSON.parse(msg.replace('authorization:github:success:', ''));
+
+          if (payload && payload.token) {
+            const userObj = JSON.stringify({ token: payload.token, provider: 'github' });
+
+            // Eski ve yeni isimlerle yaz (Decap / Netlify CMS uyumu)
+            localStorage.setItem('decap-cms-user', userObj);
+            localStorage.setItem('decap-cms.user', userObj);      // bazı sürümler noktalı adı da okuyor
+            localStorage.setItem('netlify-cms-user', userObj);
+
+            // provider anahtarlarını da tekilleştir
+            localStorage.setItem('decap-cms-provider', 'github');
+            localStorage.setItem('netlify-cms-provider', 'github');
+
+            // temiz bir yeniden yükleme
+            window.location.reload();
+          }
         } catch (e) {
-          console.error('AUTH payload parse error:', e);
+          console.error('Auth message parse error:', e);
         }
-      }, false);
+      }
+      window.addEventListener('message', handleAuthMessage, false);
     </script>
   </body>
 </html>
