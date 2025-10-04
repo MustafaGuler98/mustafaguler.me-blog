@@ -14,3 +14,9 @@ Require valid-user
 <Files "config.secret.php">
   Require all denied
 </Files>
+
+<IfModule mod_mime.c>
+  AddType text/yaml .yml
+  AddType text/yaml .yaml
+</IfModule>
+
