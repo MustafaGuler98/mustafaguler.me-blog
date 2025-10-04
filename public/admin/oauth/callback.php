@@ -26,15 +26,18 @@ curl_setopt_array($ch, [
 $res = curl_exec($ch);
 curl_close($ch);
 
-$data  = json_decode($res, true);
+$data  = json_decode($res ?? '', true);
 $token = $data['access_token'] ?? null;
 
 header('Content-Type: text/html; charset=utf-8');
 if (!$token) {
-  echo "<script>window.opener.postMessage('authorization:github:denied', '*'); window.close();</script>";
+  // Basit debug metni, 3 sn göster sonra kapan
+  echo "<pre>Token alınamadı:\n" . htmlspecialchars($res ?? 'boş') . "</pre>";
+  echo "<script>setTimeout(()=>{window.opener.postMessage('authorization:github:denied','*');window.close();},3000)</script>";
   exit;
 }
 
+// Decap'in beklediği format
 $payload = json_encode(['token' => $token, 'provider' => 'github']);
 echo "<script>
   window.opener.postMessage('authorization:github:success:{$payload}', '*');

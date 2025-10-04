@@ -1,33 +1,58 @@
-<script>
-/**
- * Decap bazen postMessage'ı yakalasa bile localStorage yazamıyor.
- * Bu köprü, gelen "authorization:github:success:..." mesajını alıp
- * token'ı Decap'in beklediği anahtarla localStorage'a yazar ve sayfayı yeniler.
- */
-(function () {
-  function handleAuthMessage(e) {
-    try {
-      // Güvenlik: sadece kendi origin'imizden geleni kabul et
-      if (e.origin !== window.location.origin) return;
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="robots" content="noindex" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Decap Admin</title>
+  </head>
+  <body>
+    <!-- Tek bir CDN — çift yükleme beyaz ekrana neden olur -->
+    <script src="https://unpkg.com/decap-cms@3.0.10/dist/decap-cms.js"></script>
 
-      if (typeof e.data === 'string' && e.data.startsWith('authorization:github:')) {
-        // Beklenen ham string: 'authorization:github:success:{"token":"...","provider":"github"}'
-        var parts = e.data.split(':'); // ["authorization", "github", "success", '{"token":"..."}']
-        var payload = parts.slice(3).join(':'); // JSON kısmı
-        var data = JSON.parse(payload || '{}');
-        if (data.token) {
-          // Decap'in beklediği anahtar: netlify-cms-user
-          localStorage.setItem('netlify-cms-user', JSON.stringify({ token: data.token }));
-          // (Opsiyonel) provider bilgisini saklamak istersen:
-          // localStorage.setItem('netlify-cms-provider', data.provider || 'github');
-          // Yenile ve CMS'i token ile başlat
+    <script>
+      // Eski/yanlış cache’i temizle (giriş döngüsü olmasın)
+      localStorage.removeItem('netlify-cms-user');
+
+      // Decap'i manuel başlat (config.yml dosyadan okunacak, cache kapalı)
+      window.CMS_MANUAL_INIT = true;
+      const { initCMS: init } = window; // 3.x ile önerilen çağrı
+
+      fetch('config.yml', { cache: 'no-store' })
+        .then(r => {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.text();
+        })
+        .then(() => {
+          init({ config: { load_config_file: true } });
+        })
+        .catch(e => {
+          document.body.insertAdjacentHTML(
+            'beforeend',
+            `<pre style="padding:1rem;color:#b00">config.yml okunamadı: ${e}</pre>`
+          );
+        });
+
+      // --- Güvenli “yedek” dinleyici: popup token’ı yolladıysa biz de oturum açtıralım
+      window.addEventListener('message', (ev) => {
+        try {
+          if (typeof ev.data !== 'string') return;
+          const prefix = 'authorization:github:success:';
+          if (!ev.data.startsWith(prefix)) return;
+          const payload = JSON.parse(ev.data.slice(prefix.length)); // {token, provider}
+          if (!payload?.token) return;
+
+          // Decap’in beklediği anahtar/format
+          localStorage.setItem(
+            'netlify-cms-user',
+            JSON.stringify({ token: payload.token, provider: payload.provider || 'github' })
+          );
+          // sayfayı yenile — Decap kullanıcıyı yakalayıp UI’ı açar
           window.location.reload();
+        } catch (err) {
+          console.error('Auth bridge error:', err);
         }
-      }
-    } catch (err) {
-      console.error('Auth bridge error:', err);
-    }
-  }
-  window.addEventListener('message', handleAuthMessage, false);
-})();
-</script>
+      }, false);
+    </script>
+  </body>
+</html>

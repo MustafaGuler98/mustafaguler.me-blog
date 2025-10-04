@@ -1,22 +1,10 @@
-# YML doğru Content-Type ile servis edilsin:
-AddType text/yaml .yml
-AddType text/yaml .yaml
-
-# Admin klasörünü temel parola ile koruyorsan:
-AuthUserFile /home/u843157774/domains/mustafaguler.me/public_html/blog/admin/.htpasswd
-AuthType Basic
-AuthName "Giriş"
-Require valid-user
-
-# Sadece bu dosyalar public erişime açık olsun
-<Files "callback.php">
-  Require all granted
-</Files>
 <Files "config.secret.php">
   Require all denied
 </Files>
 
-# Yüksek cache yüzünden config’in eski kalmaması için:
-<Files "config.yml">
-  Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+<Files "callback.php">
+  Require all granted
 </Files>
+
+AddType text/yaml .yml
+AddType text/yaml .yaml
