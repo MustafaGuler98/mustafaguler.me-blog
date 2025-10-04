@@ -4,24 +4,25 @@
     <meta charset="utf-8" />
     <meta name="robots" content="noindex" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Decap CMS</title>
-    <style>
-      /* basit bir reset; beyaz ekran olsa bile loader görünür */
-      html,body,#nc-root { height: 100%; margin: 0; }
-    </style>
-    <!-- Decap CMS -->
-    <script src="https://unpkg.com/decap-cms@3.8.4/dist/decap-cms.js"></script>
-    <!-- (opsiyonel) widget/preview ekleyeceksen burada JS eklenir -->
+    <title>Decap Admin</title>
   </head>
   <body>
+    <!-- Tek bir CDN. Çift yükleme beyaz ekran/“removeChild” hatası yapar -->
+    <script src="https://unpkg.com/decap-cms@3.0.10/dist/decap-cms.js"></script>
+
     <script>
-      fetch('config.yml', {cache: 'no-store'})
-        .then(r => {
-          console.log('config.yml content-type:', r.headers.get('content-type'));
-          return r.text();
+      // Eski/yanlış cache’i patlat
+      localStorage.removeItem('netlify-cms-user');
+
+      // Panelin config.yml'i dosyadan okumasını ve cache kullanmamasını garantile
+      window.CMS_MANUAL_INIT = true;
+      fetch('config.yml', { cache: 'no-store' })
+        .then(() => {
+          CMS.init({ config: { load_config_file: true } });
         })
-        .then(t => console.log('config.yml length:', t.length))
-        .catch(e => console.error('config.yml fetch error', e));
+        .catch((e) => {
+          document.body.innerHTML = '<pre>config.yml okunamadı: ' + e + '</pre>';
+        });
     </script>
   </body>
 </html>

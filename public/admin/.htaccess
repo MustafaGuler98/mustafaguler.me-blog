@@ -1,22 +1,22 @@
-# YAML mime
+# YML doğru Content-Type ile servis edilsin:
 AddType text/yaml .yml
 AddType text/yaml .yaml
 
-# (Varsa) BasicAuth kuralın burada olabilir, ama oauth klasörünü dışarıda bırak:
-# Örn:
-# <FilesMatch "^(?!oauth/).*$">
-#   AuthType Basic
-#   AuthName "Restricted"
-#   AuthUserFile /home/.../public_html/blog/admin/.htpasswd
-#   Require valid-user
-# </FilesMatch>
+# Admin klasörünü temel parola ile koruyorsan:
+AuthUserFile /home/u843157774/domains/mustafaguler.me/public_html/blog/admin/.htpasswd
+AuthType Basic
+AuthName "Giriş"
+Require valid-user
 
-# OAuth klasörü açık kalsın
-<Directory "/home/USERNAME/public_html/blog/admin/oauth">
+# Sadece bu dosyalar public erişime açık olsun
+<Files "callback.php">
   Require all granted
-</Directory>
+</Files>
+<Files "config.secret.php">
+  Require all denied
+</Files>
 
-# (İsteğe bağlı) cache patlatma
+# Yüksek cache yüzünden config’in eski kalmaması için:
 <Files "config.yml">
-  Header set Cache-Control "no-cache, no-store, must-revalidate"
+  Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
 </Files>
