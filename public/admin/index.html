@@ -1,47 +1,64 @@
 <!doctype html>
 <html lang="tr">
-<head>
-  <meta charset="utf-8" />
-  <meta name="robots" content="noindex" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Decap Admin</title>
-  <!-- Tek CDN – ikinci bir decap-cms.js yükleme! -->
-  <script src="https://unpkg.com/decap-cms@3.1.0-beta.4/dist/decap-cms.js"></script>
-</head>
-<body>
-<script>
-  // Eski/yanlış netlify-cms anahtarlarını temizle
-  localStorage.removeItem('netlify-cms-user');
-  localStorage.removeItem('netlify-cms-provider');
+  <head>
+    <meta charset="utf-8" />
+    <meta name="robots" content="noindex" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Decap Admin</title>
 
-  // Pop-up'tan gelecek cevabı YAKALA ve Decap'ın istediği anahtarlara yaz
-  function handleAuthMessage(e) {
-    if (e.origin !== window.location.origin) return;
-    const raw = String(e.data || '');
-    if (!raw.startsWith('authorization:github:')) return;
+    <!-- Decap CMS – önce unpkg, başarısız olursa jsDelivr'a düş -->
+    <script>
+      (function loadDecap() {
+        var s = document.createElement('script');
+        s.src = 'https://unpkg.com/decap-cms@3.1.0-beta.4/dist/decap-cms.js';
+        s.async = false;
+        s.onerror = function () {
+          var f = document.createElement('script');
+          f.src = 'https://cdn.jsdelivr.net/npm/decap-cms@3.1.0-beta.4/dist/decap-cms.js';
+          f.async = false;
+          document.head.appendChild(f);
+        };
+        document.head.appendChild(s);
+      })();
+    </script>
+  </head>
+  <body>
+    <script>
+      // Eski/yanlış anahtarları temizle
+      localStorage.removeItem('netlify-cms-user');
+      localStorage.removeItem('netlify-cms-provider');
 
-    const parts = raw.split(':');
-    const status = parts[2];
-    let payload = null;
-    try { payload = JSON.parse(parts.slice(3).join(':')); } catch {}
+      // OAuth popup'ından gelen mesajı yakala ve Decap'ın beklediği anahtarlara yaz
+      function handleAuthMessage(e) {
+        if (e.origin !== window.location.origin) return;
+        var raw = String(e.data || '');
+        if (!raw.startsWith('authorization:github:')) return;
 
-    console.log('AUTH MSG →', status, payload);
+        var status = raw.split(':')[2];
+        var payload = null;
+        try { payload = JSON.parse(raw.split(':').slice(3).join(':')); } catch {}
 
-    if (status === 'success' && payload && payload.token) {
-      localStorage.setItem('decap-cms-user', JSON.stringify({ token: payload.token }));
-      localStorage.setItem('decap-cms-provider', 'github');
-      location.reload();
-    } else {
-      console.warn('Yetkilendirme başarısız');
-    }
-  }
-  window.addEventListener('message', handleAuthMessage, false);
+        if (status === 'success' && payload && payload.token) {
+          localStorage.setItem('decap-cms-user', JSON.stringify({ token: payload.token }));
+          localStorage.setItem('decap-cms-provider', 'github');
+          location.reload();
+        }
+      }
+      window.addEventListener('message', handleAuthMessage, false);
 
-  // Decap’ı dosyadan konfig ile başlat
-  window.CMS_MANUAL_INIT = true;
-  fetch('config.yml', { cache: 'no-store' })
-    .then(() => CMS.init({ config: { load_config_file: true } }))
-    .catch((e) => document.body.insertAdjacentHTML('beforeend', '<pre>config.yml okunamadı: '+e+'</pre>'));
-</script>
-</body>
+      // Decap yüklendikten sonra başlat (CMS globali hazır olana kadar bekle)
+      window.CMS_MANUAL_INIT = true;
+      (function waitCMS() {
+        if (window.CMS && typeof CMS.init === 'function') {
+          fetch('config.yml', { cache: 'no-store' })
+            .then(function () { CMS.init({ config: { load_config_file: true } }); })
+            .catch(function (e) {
+              document.body.innerHTML = '<pre>config.yml okunamadı: ' + e + '</pre>';
+            });
+        } else {
+          setTimeout(waitCMS, 50);
+        }
+      })();
+    </script>
+  </body>
 </html>
