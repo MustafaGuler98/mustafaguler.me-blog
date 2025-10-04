@@ -1,22 +1,16 @@
-AuthType Basic
-AuthName "Restricted"
-AuthUserFile /home/u843157774/domains/mustafaguler.me/public_html/blog/admin/.htpasswd
-Require valid-user
-
-<Files "auth.php">
-  Require all granted
-</Files>
-
-<Files "callback.php">
-  Require all granted
-</Files>
 
 <Files "config.secret.php">
   Require all denied
 </Files>
+
 
 <IfModule mod_mime.c>
   AddType text/yaml .yml
   AddType text/yaml .yaml
 </IfModule>
 
+<IfModule mod_headers.c>
+  <Files "config.yml">
+    Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+  </Files>
+</IfModule>

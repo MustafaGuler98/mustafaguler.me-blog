@@ -1,16 +1,21 @@
 <?php
-require __DIR__ . '/config.secret.php';
+// public/blog/admin/oauth/auth.php
 session_start();
+require __DIR__ . '/config.secret.php';
 
+// CSRF koruması için random state üret
 $state = bin2hex(random_bytes(16));
 $_SESSION['oauth_state'] = $state;
 
-$params = http_build_query([
+// GitHub authorize URL
+$params = [
   'client_id'    => GITHUB_CLIENT_ID,
   'redirect_uri' => 'https://mustafaguler.me/blog/admin/oauth/callback.php',
-  'scope'        => 'repo,user',
+  'scope'        => GITHUB_SCOPE,
   'state'        => $state,
-]);
+  'allow_signup' => 'false',
+];
 
-header('Location: https://github.com/login/oauth/authorize?' . $params);
+$location = 'https://github.com/login/oauth/authorize?' . http_build_query($params);
+header('Location: ' . $location);
 exit;

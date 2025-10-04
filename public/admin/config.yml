@@ -1,16 +1,20 @@
 backend:
   name: github
-  repo: mustafaguler98/mustafaguler.me-blog # Format: kullanici-adi/repo-adi
-  branch: main # Çalıştığınız branch
-  auth_endpoint: oauth/auth.php # admin klasörüne göreceli yol
+  repo: mustafaguler98/mustafaguler.me-blog
+  branch: main
+
+  # OAuth köprüsü kendi sunucunda çalışıyor:
+  base_url: https://mustafaguler.me/blog/admin/oauth
+  auth_endpoint: /auth.php
 
 media_folder: "public/blog/assets/uploads"
 public_folder: "/blog/assets/uploads"
 
-# Bu ayarlar Decap'in kendisi için değil, sitenizin derlenmesi içindir.
-# Onları burada tutmakta bir sakınca yok.
 site_url: "https://mustafaguler.me"
 base_url: "/blog"
+
+# İstersen taslak/PR süreci
+# publish_mode: editorial_workflow
 
 collections:
   - name: "posts_tr"
