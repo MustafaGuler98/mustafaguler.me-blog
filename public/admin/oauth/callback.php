@@ -1,15 +1,14 @@
 <?php
 require __DIR__ . '/config.secret.php';
+
 session_start();
 if (!isset($_GET['code'])) {
-  http_response_code(400);
-  echo 'Missing code';
-  exit;
+  $err = 'Missing code';
+  goto error;
 }
 if (!isset($_GET['state']) || !hash_equals($_SESSION['oauth_state'] ?? '', $_GET['state'])) {
-  http_response_code(400);
-  echo 'Invalid state';
-  exit;
+  $err = 'Invalid state';
+  goto error;
 }
 
 $code        = $_GET['code'];
@@ -17,7 +16,7 @@ $clientId    = GITHUB_CLIENT_ID;
 $clientSecret= GITHUB_CLIENT_SECRET;
 $redirectUri = 'https://mustafaguler.me/blog/admin/oauth/callback.php';
 
-// GitHub'dan access_token al
+// Token iste
 $ch = curl_init('https://github.com/login/oauth/access_token');
 curl_setopt_array($ch, [
   CURLOPT_POST       => true,
@@ -31,20 +30,41 @@ curl_setopt_array($ch, [
   ]),
 ]);
 $resp = curl_exec($ch);
-if ($resp === false) {
-  http_response_code(500);
-  echo 'OAuth request failed';
-  exit;
-}
+if ($resp === false) { $err = 'OAuth request failed'; goto error; }
 $data = json_decode($resp, true);
 $token = $data['access_token'] ?? null;
-if (!$token) {
-  http_response_code(500);
-  echo 'No access_token';
-  exit;
-}
+if (!$token) { $err = 'No access_token'; goto error; }
 
-// Decap JSON bekler:
-header('Content-Type: application/json');
-// header('Access-Control-Allow-Origin: https://mustafaguler.me');
-echo json_encode(['token' => $token]);
+// 🔹 Decap/Netlify CMS beklenen format: authorization:github:success:<TOKEN>
+header('Content-Type: text/html; charset=utf-8');
+?>
+<!doctype html>
+<meta charset="utf-8" />
+<script>
+  (function () {
+    try {
+      var payload = 'authorization:github:success:' + <?= json_encode($token) ?>;
+      window.opener && window.opener.postMessage(payload, '*');
+      window.close();
+    } catch (e) {
+      document.body.textContent = 'Login ok but could not notify opener. You can close this window.';
+    }
+  })();
+</script>
+<body>Logging you in…</body>
+<?php
+exit;
+
+error:
+header('Content-Type: text/html; charset=utf-8');
+?>
+<!doctype html>
+<meta charset="utf-8" />
+<script>
+  (function () {
+    var payload = 'authorization:github:error:<?= htmlspecialchars($err ?? "unknown", ENT_QUOTES) ?>';
+    window.opener && window.opener.postMessage(payload, '*');
+    // window.close(); // hatayı görmek istersen kapatma
+  })();
+</script>
+<body>OAuth error: <?= htmlspecialchars($err ?? "unknown") ?></body>
