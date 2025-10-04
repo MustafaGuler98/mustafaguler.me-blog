@@ -5,54 +5,67 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Decap Admin</title>
 
-  <!-- Sadece admin için CSP -->
+  <!-- Yalnız admin için gevşek CSP (Decap 3.x için gerekli) -->
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self';
                  script-src 'self' https://unpkg.com 'unsafe-inline' 'unsafe-eval';
-                 style-src 'self' 'unsafe-inline';
-                 img-src * data: blob:;
+                 style-src  'self' 'unsafe-inline';
+                 img-src    * data: blob:;
                  connect-src *;
-                 base-uri 'self';
-                 frame-ancestors 'self'">
+                 base-uri 'self'">
 
-  <!-- Tek ve doğru CDN -->
+  <!-- TEK CDN: başka JS yok -->
   <script src="https://unpkg.com/decap-cms@3.0.10/dist/decap-cms.js"></script>
 </head>
 <body>
   <script>
-    // Eski cache’leri temizle
+    // Eski/çakışan oturumları temizle
     localStorage.removeItem('netlify-cms-user');
     localStorage.removeItem('decap-cms-user');
 
-    // config.yml'i dosyadan ve cache’siz oku
-    window.CMS_MANUAL_INIT = true;
-    fetch('config.yml', { cache: 'no-store' })
-      .then(() => CMS.init({ config: { load_config_file: true } }))
-      .catch(e => {
-        document.body.innerHTML =
-          '<pre>config.yml okunamadı: ' + (e && e.toString ? e.toString() : e) + '</pre>';
-      });
-
-    // OAuth popup'tan gelen token’ı yakala (callback.php bunu yolluyor)
-    window.addEventListener('message', function(ev) {
-      try {
-        if (!ev.data || typeof ev.data !== 'string') return;
-        if (!ev.origin || ev.origin !== location.origin) return;
-
-        if (ev.data.startsWith('authorization:github:success:')) {
-          const payload = JSON.parse(ev.data.split('authorization:github:success:')[1]);
-          if (payload && payload.token) {
-            localStorage.setItem('decap-cms-user', JSON.stringify({ token: payload.token }));
-            localStorage.setItem('decap-cms-provider', 'github');
-            location.reload();
-          }
-        } else if (ev.data === 'authorization:github:denied') {
-          console.error('GitHub OAuth reddedildi');
-        }
-      } catch (err) {
-        console.error('Auth bridge error:', err);
+    // Hem DOM hem de CMS hazır olana kadar bekleyen güvenli bekleyici
+    (function startWhenReady() {
+      // 1) <body> var mı?
+      if (!document.body) {
+        return setTimeout(startWhenReady, 20);
       }
-    });
+      // 2) CMS geldi mi? (Decap CDN yüklendi mi?)
+      if (typeof window.CMS !== 'function') {
+        return setTimeout(startWhenReady, 20);
+      }
+
+      // config.yml'i dosyadan ve cache’siz oku
+      window.CMS_MANUAL_INIT = true;
+      fetch('config.yml', { cache: 'no-store' })
+        .then(function () {
+          CMS.init({ config: { load_config_file: true } });
+        })
+        .catch(function (e) {
+          document.body.innerHTML =
+            '<pre>config.yml okunamadı: ' + (e && e.toString ? e.toString() : e) + '</pre>';
+        });
+
+      // OAuth popup’tan gelen token’ı yakala
+      window.addEventListener('message', function (ev) {
+        try {
+          if (!ev.data || typeof ev.data !== 'string') return;
+          if (ev.origin !== location.origin) return;
+
+          if (ev.data.startsWith('authorization:github:success:')) {
+            var payload = JSON.parse(ev.data.split('authorization:github:success:')[1]);
+            if (payload && payload.token) {
+              localStorage.setItem('decap-cms-user', JSON.stringify({ token: payload.token }));
+              localStorage.setItem('decap-cms-provider', 'github');
+              location.reload();
+            }
+          } else if (ev.data === 'authorization:github:denied') {
+            console.error('GitHub OAuth reddedildi');
+          }
+        } catch (err) {
+          console.error('Auth bridge error:', err);
+        }
+      });
+    })();
   </script>
 </body>
 </html>
