@@ -1,70 +1,47 @@
 <!doctype html>
 <html lang="tr">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="robots" content="noindex" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Decap Admin</title>
-    <style>
-      /* Decap bazı temalarda body içeriğini temizleyip yeniden çiziyor.
-         Net bir kök verelim ki removeChild/mount tutarlı olsun. */
-      #nc-root { min-height: 100vh; }
-    </style>
+<head>
+  <meta charset="utf-8" />
+  <meta name="robots" content="noindex" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Decap Admin</title>
+  <!-- Tek CDN – ikinci bir decap-cms.js yükleme! -->
+  <script src="https://unpkg.com/decap-cms@3.1.0-beta.4/dist/decap-cms.js"></script>
+</head>
+<body>
+<script>
+  // Eski/yanlış netlify-cms anahtarlarını temizle
+  localStorage.removeItem('netlify-cms-user');
+  localStorage.removeItem('netlify-cms-provider');
 
-    <script>
-      /* Bazı ortamlarda Decap, loader'ı body'den silerken NotFoundError fırlatıyor.
-         Bu shim sadece "NotFoundError" durumunu yutar, başka hataları değiştirmez. */
-      (function(){
-        const _remove = Element.prototype.removeChild;
-        Element.prototype.removeChild = function(child){
-          try { return _remove.call(this, child); }
-          catch (e) {
-            if (e && e.name === 'NotFoundError') return child;
-            throw e;
-          }
-        };
-      })();
-    </script>
-  </head>
+  // Pop-up'tan gelecek cevabı YAKALA ve Decap'ın istediği anahtarlara yaz
+  function handleAuthMessage(e) {
+    if (e.origin !== window.location.origin) return;
+    const raw = String(e.data || '');
+    if (!raw.startsWith('authorization:github:')) return;
 
-  <body>
-    <!-- Decap'ın güvenle mount edeceği kök -->
-    <div id="nc-root"></div>
+    const parts = raw.split(':');
+    const status = parts[2];
+    let payload = null;
+    try { payload = JSON.parse(parts.slice(3).join(':')); } catch {}
 
-    <!-- Tek CDN (çift script kesinlikle koyma) -->
-    <script src="https://unpkg.com/decap-cms@3.1.0/dist/decap-cms.js"></script>
+    console.log('AUTH MSG →', status, payload);
 
-    <script>
-      // Temiz başlangıç
-      ['decap-cms.user','decap-cms-user','netlify-cms-user'].forEach(k => localStorage.removeItem(k));
+    if (status === 'success' && payload && payload.token) {
+      localStorage.setItem('decap-cms-user', JSON.stringify({ token: payload.token }));
+      localStorage.setItem('decap-cms-provider', 'github');
+      location.reload();
+    } else {
+      console.warn('Yetkilendirme başarısız');
+    }
+  }
+  window.addEventListener('message', handleAuthMessage, false);
 
-      // Config'i dosyadan oku (cache kapalı) ve manuel başlat
-      window.CMS_MANUAL_INIT = true;
-      fetch('config.yml', { cache: 'no-store' })
-        .then(r => { if (!r.ok) throw new Error('config.yml ' + r.status); return r.text(); })
-        .then(() => CMS.init({ config: { load_config_file: true } }))
-        .catch(e => { document.body.innerHTML = '<pre>config.yml okunamadı: ' + e + '</pre>'; });
-
-      // OAuth popup mesajını garantiye al: token'ı hem yeni hem eski anahtar adlarıyla yaz
-      function handleAuthMessage(ev) {
-        try {
-          if (ev.origin !== window.location.origin) return;
-          const msg = String(ev.data || '');
-          if (!msg.startsWith('authorization:github:success:')) return;
-
-          const payload = JSON.parse(msg.replace('authorization:github:success:', ''));
-          if (payload && payload.token) {
-            const user = JSON.stringify({ token: payload.token, provider: 'github' });
-            localStorage.setItem('decap-cms-user', user);
-            localStorage.setItem('decap-cms.user', user);
-            localStorage.setItem('netlify-cms-user', user);
-            localStorage.setItem('decap-cms-provider', 'github');
-            localStorage.setItem('netlify-cms-provider', 'github');
-            window.location.reload();
-          }
-        } catch (e) { console.error('Auth message parse error:', e); }
-      }
-      window.addEventListener('message', handleAuthMessage, false);
-    </script>
-  </body>
+  // Decap’ı dosyadan konfig ile başlat
+  window.CMS_MANUAL_INIT = true;
+  fetch('config.yml', { cache: 'no-store' })
+    .then(() => CMS.init({ config: { load_config_file: true } }))
+    .catch((e) => document.body.insertAdjacentHTML('beforeend', '<pre>config.yml okunamadı: '+e+'</pre>'));
+</script>
+</body>
 </html>

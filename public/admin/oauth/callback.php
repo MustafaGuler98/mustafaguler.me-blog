@@ -22,7 +22,7 @@ curl_setopt_array($ch, [
     'redirect_uri'  => 'https://mustafaguler.me/blog/admin/oauth/callback.php',
   ],
 ]);
-$res = curl_exec($ch);
+$res   = curl_exec($ch);
 curl_close($ch);
 
 $data  = json_decode($res, true);
@@ -35,7 +35,4 @@ if (!$token) {
 }
 
 $payload = json_encode(['token' => $token, 'provider' => 'github']);
-echo "<script>
-  window.opener.postMessage('authorization:github:success:{$payload}', window.opener.location.origin);
-  window.close();
-</script>";
+echo "<script>window.opener.postMessage('authorization:github:success:{$payload}', '*'); window.close();</script>";

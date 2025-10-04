@@ -1,10 +1,6 @@
-<Files "config.secret.php">
-  Require all denied
-</Files>
+# Sadece bu dizin
+Require all granted
 
-<Files "callback.php">
-  Require all granted
-</Files>
-
+# YAML doğru tipte
 AddType text/yaml .yml
 AddType text/yaml .yaml
