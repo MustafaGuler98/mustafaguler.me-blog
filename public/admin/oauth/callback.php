@@ -3,14 +3,16 @@
 require __DIR__ . '/config.secret.php';
 session_start();
 
-// Güvenlik: state doğrula
+// 1) state doğrulaması
 if (!isset($_GET['code']) || (($_GET['state'] ?? '') !== ($_SESSION['oauth_state'] ?? ''))) {
+  header('Content-Type: text/html; charset=utf-8');
   echo "<script>window.opener.postMessage('authorization:github:denied', '*'); window.close();</script>";
   exit;
 }
+
 $code = $_GET['code'];
 
-// Access token al
+// 2) GitHub access token al
 $ch = curl_init('https://github.com/login/oauth/access_token');
 curl_setopt_array($ch, [
   CURLOPT_RETURNTRANSFER => true,
@@ -29,14 +31,19 @@ curl_close($ch);
 $data  = json_decode($res, true);
 $token = $data['access_token'] ?? null;
 
+// 3) Decap'in beklediği mesaj formatı
+header('Content-Type: text/html; charset=utf-8');
+
 if (!$token) {
   echo "<script>window.opener.postMessage('authorization:github:denied', '*'); window.close();</script>";
   exit;
 }
 
-// Decap'in beklediği mesaj:
 $payload = json_encode(['token' => $token, 'provider' => 'github']);
+
+// ÖNEMLİ: Aşağıdaki echo + çift tırnak kullanımı sayesinde {$payload} PHP tarafından stringe gömülür
 echo "<script>
   window.opener.postMessage('authorization:github:success:{$payload}', '*');
-  window.close();
+  // içeriği görmek istersen şimdilik 3sn geciktirebilirsin:
+  setTimeout(() => window.close(), 3000);
 </script>";
