@@ -8,12 +8,13 @@ if (!isset($_GET['code']) || (($_GET['state'] ?? '') !== ($_SESSION['oauth_state
   echo "<!doctype html><meta charset=utf-8><body>STATE MISMATCH
 <script>
   window.opener && window.opener.postMessage('authorization:github:denied', '*');
-  setTimeout(()=>window.close(), 2000);
+  // setTimeout(()=>window.close(), 2000); // <-- BU SATIRI DEVRE DIŞI BIRAKIN
 </script>";
   exit;
 }
 
 // --- 2) token iste
+// ... (curl kodları aynı kalacak) ...
 $ch = curl_init('https://github.com/login/oauth/access_token');
 curl_setopt_array($ch, [
   CURLOPT_RETURNTRANSFER => true,
@@ -40,7 +41,7 @@ if (!$token) {
 <pre>".htmlspecialchars($res ?: 'bos cevap')."</pre>
 <script>
   window.opener && window.opener.postMessage('authorization:github:denied', '*');
-  setTimeout(()=>window.close(), 4000);
+  // setTimeout(()=>window.close(), 4000); // <-- BU SATIRI DA DEVRE DIŞI BIRAKIN
 </script>";
   exit;
 }
@@ -68,5 +69,5 @@ try {
 } catch (e) {
   document.getElementById('log').innerText = 'JS HATASI: '+ e.message;
 }
-setTimeout(()=>window.close(), 3000);
+// setTimeout(()=>window.close(), 3000); // <-- BU SATIRI DA DEVRE DIŞI BIRAKIN
 </script>";
