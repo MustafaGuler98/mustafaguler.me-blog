@@ -2,61 +2,51 @@
 <html lang="tr">
   <head>
     <meta charset="utf-8" />
-    <meta name="robots" content="noindex" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
     <title>Decap Admin</title>
 
-    <!-- Decap CMS – önce unpkg, başarısız olursa jsDelivr'a düş -->
-    <script>
-      (function loadDecap() {
-        var s = document.createElement('script');
-        s.src = 'https://unpkg.com/decap-cms@3.1.0-beta.4/dist/decap-cms.js';
-        s.async = false;
-        s.onerror = function () {
-          var f = document.createElement('script');
-          f.src = 'https://cdn.jsdelivr.net/npm/decap-cms@3.1.0-beta.4/dist/decap-cms.js';
-          f.async = false;
-          document.head.appendChild(f);
-        };
-        document.head.appendChild(s);
-      })();
-    </script>
+    <!-- Tek CDN. İkincisini KESİNLİKLE ekleme -->
+    <script src="https://unpkg.com/decap-cms@3.1.0/dist/decap-cms.js"></script>
   </head>
   <body>
     <script>
-      // Eski/yanlış anahtarları temizle
-      localStorage.removeItem('netlify-cms-user');
-      localStorage.removeItem('netlify-cms-provider');
+      // Decap otomatik açılışı kapatıyoruz; kendimiz init edeceğiz.
+      window.CMS_MANUAL_INIT = true;
 
-      // OAuth popup'ından gelen mesajı yakala ve Decap'ın beklediği anahtarlara yaz
+      // OAuth popup'tan gelen mesajı yakala ve localStorage'a yaz.
       function handleAuthMessage(e) {
-        if (e.origin !== window.location.origin) return;
-        var raw = String(e.data || '');
-        if (!raw.startsWith('authorization:github:')) return;
+        if (!e || typeof e.data !== "string") return;
+        if (!e.data.startsWith("authorization:github:")) return;
 
-        var status = raw.split(':')[2];
-        var payload = null;
-        try { payload = JSON.parse(raw.split(':').slice(3).join(':')); } catch {}
-
-        if (status === 'success' && payload && payload.token) {
-          localStorage.setItem('decap-cms-user', JSON.stringify({ token: payload.token }));
-          localStorage.setItem('decap-cms-provider', 'github');
-          location.reload();
+        try {
+          const payload = JSON.parse(e.data.split(":").slice(2).join(":"));
+          if (payload && payload.token) {
+            localStorage.setItem("decap-cms-user", JSON.stringify({ token: payload.token }));
+            localStorage.setItem("decap-cms-provider", "github");
+            console.log("Decap token kaydedildi, sayfa yenileniyor…");
+            location.reload();
+          }
+        } catch (err) {
+          console.error("Auth payload parse edilemedi:", err, e.data);
         }
       }
-      window.addEventListener('message', handleAuthMessage, false);
+      window.addEventListener("message", handleAuthMessage, false);
 
-      // Decap yüklendikten sonra başlat (CMS globali hazır olana kadar bekle)
-      window.CMS_MANUAL_INIT = true;
-      (function waitCMS() {
-        if (window.CMS && typeof CMS.init === 'function') {
-          fetch('config.yml', { cache: 'no-store' })
-            .then(function () { CMS.init({ config: { load_config_file: true } }); })
-            .catch(function (e) {
-              document.body.innerHTML = '<pre>config.yml okunamadı: ' + e + '</pre>';
+      // CMS hazır olana kadar güvenli biçimde bekle ve init et.
+      (function waitForCMS() {
+        if (window.CMS && typeof window.CMS.init === "function") {
+          fetch("config.yml", { cache: "no-store" })
+            .then(() => {
+              CMS.init({ config: { load_config_file: true } });
+              console.log("CMS init edildi.");
+            })
+            .catch((e) => {
+              document.body.innerHTML =
+                "<pre>config.yml okunamadı:\n" + (e && e.toString()) + "</pre>";
             });
         } else {
-          setTimeout(waitCMS, 50);
+          setTimeout(waitForCMS, 50);
         }
       })();
     </script>

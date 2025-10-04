@@ -1,9 +1,8 @@
 backend:
   name: github
   repo: MustafaGuler98/mustafaguler.me-blog
-  branch: main
-  base_url: "https://mustafaguler.me/blog/admin/oauth"   # <- /oauth altında PHP’ler var
-  auth_endpoint: "auth.php"
+  base_url: "https://mustafaguler.me/blog/admin/oauth"
+  auth_endpoint: "auth.php"   # => tam URL: /blog/admin/oauth/auth.php
 
 site_url: "https://mustafaguler.me"
 base_url: "/blog"
