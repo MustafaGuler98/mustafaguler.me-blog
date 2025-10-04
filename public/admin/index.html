@@ -1,62 +1,58 @@
 <!doctype html>
 <html lang="tr">
-<head>
-  <meta charset="utf-8" />
-  <meta name="robots" content="noindex" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Decap Admin</title>
-</head>
-<body>
-  <!-- TEK CDN (çift yükleme = beyaz ekran) -->
-  <script src="https://unpkg.com/decap-cms@3.1.9/dist/decap-cms.js"></script>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="robots" content="noindex" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Decap Admin</title>
+  </head>
+  <body>
+    <!-- TEK CDN (ikinci bir decap-cms.js, bundle ya da eklenti yükleme!) -->
+    <script src="https://unpkg.com/decap-cms@3.1.0/dist/decap-cms.js"></script>
 
-  <script>
-    // 1) Eski/bozuk durumları temizle
-    try {
-      localStorage.removeItem('netlify-cms-user');         // Decap hâlâ bu anahtarı kullanıyor
-      sessionStorage.removeItem('netlify-cms-user');       // ihtiyata binaen
-    } catch (e) {}
+    <script>
+      // Eski, bozuk durumları temizle (özellikle sizin önceki denemelerden kalan anahtarı)
+      sessionStorage.removeItem('netlify-cms-user');
+      // window.CMS_MANUAL_INIT ile config.yml’i dosyadan ve cache’siz okutacağız
+      window.CMS_MANUAL_INIT = true;
 
-    // 2) OAuth popup'ından gelecek mesajı yakala ve token'ı kendimiz kaydedelim
-    function handleAuthMessage(ev) {
-      // Güvenlik: sadece aynı origin'den gelen mesaja cevap ver
-      if (ev.origin !== window.location.origin) return;
+      // 1) OAuth popup’tan gelen mesajı YAKALA → localStorage’a yaz → sayfayı yenile
+      function handleAuthMessage(e) {
+        // Callback aynı origin’den geldiği için güvenlik açısından kontrol edelim:
+        if (e.origin !== window.location.origin) return;
+        if (typeof e.data !== 'string') return;
+        if (!e.data.startsWith('authorization:github:')) return;
 
-      const msg = String(ev.data || '');
-      if (!msg.startsWith('authorization:github:success:')) return;
+        try {
+          // "authorization:github:success:{...json...}" → JSON kısmını soy
+          var payloadStr = e.data.replace(/^authorization:github:(success|error):/, '');
+          var payload = JSON.parse(payloadStr); // { token: "...", provider: "github" }
 
-      try {
-        const payload = JSON.parse(msg.replace('authorization:github:success:', ''));
-        if (!payload?.token) throw new Error('Token yok');
-
-        // Decap'in beklediği anahtar: 'netlify-cms-user'
-        const userObj = { token: payload.token, provider: 'github' };
-        localStorage.setItem('netlify-cms-user', JSON.stringify(userObj));
-
-        // Temizle ve yeniden yükle (Decap oturumu bu defa görecek)
-        window.removeEventListener('message', handleAuthMessage);
-        window.location.reload();
-      } catch (err) {
-        console.error('OAuth payload parse/yerleştirme hatası:', err, ev.data);
-        alert('Giriş sırasında beklenmeyen bir hata oldu (token parse).');
+          if (payload && payload.token) {
+            // Decap’in beklediği format (Netlify CMS ile bire bir aynı)
+            localStorage.setItem('netlify-cms-user', JSON.stringify({ token: payload.token }));
+            localStorage.setItem('netlify-cms-provider', payload.provider || 'github');
+            window.location.reload();
+          }
+        } catch (err) {
+          console.error('OAuth bridge error:', err);
+        }
       }
-    }
-    window.addEventListener('message', handleAuthMessage, false);
+      window.addEventListener('message', handleAuthMessage, false);
 
-    // 3) Config'i dosyadan okut (cache kapalı), sonra CMS'i başlat
-    window.CMS_MANUAL_INIT = true;
-    fetch('config.yml', { cache: 'no-store' })
-      .then(r => {
-        if (!r.ok) throw new Error('config.yml okunamadı: ' + r.status);
-        return r.text();
-      })
-      .then(() => {
-        CMS.init({ config: { load_config_file: true } });
-      })
-      .catch(err => {
-        document.body.innerHTML = '<pre style="padding:16px;color:#c00;">' +
-          (err && err.message ? err.message : err) + '</pre>';
-      });
-  </script>
-</body>
+      // 2) Decap’i **manuel** başlat (config.yml mutlaka cache’siz okunsun)
+      fetch('config.yml', { cache: 'no-store' })
+        .then(function (r) {
+          if (!r.ok) throw new Error('config.yml HTTP ' + r.status);
+          return r.text();
+        })
+        .then(function () {
+          CMS.init({ config: { load_config_file: true } });
+        })
+        .catch(function (e) {
+          document.body.innerHTML =
+            '<pre>config.yml okunamadı veya init edilemedi:\n' + String(e) + '</pre>';
+        });
+    </script>
+  </body>
 </html>

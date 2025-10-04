@@ -1,15 +1,18 @@
 <?php
+// public/blog/admin/oauth/callback.php
 require __DIR__ . '/config.secret.php';
 session_start();
 
+// 1) state doğrulaması
 if (!isset($_GET['code']) || (($_GET['state'] ?? '') !== ($_SESSION['oauth_state'] ?? ''))) {
   header('Content-Type: text/html; charset=utf-8');
-  echo "<script>window.opener.postMessage('authorization:github:denied', '*'); window.close();</script>";
+  echo "<script>window.opener.postMessage('authorization:github:denied', '*');window.close();</script>";
   exit;
 }
 
 $code = $_GET['code'];
 
+// 2) access_token al
 $ch = curl_init('https://github.com/login/oauth/access_token');
 curl_setopt_array($ch, [
   CURLOPT_RETURNTRANSFER => true,
@@ -22,24 +25,18 @@ curl_setopt_array($ch, [
     'redirect_uri'  => 'https://mustafaguler.me/blog/admin/oauth/callback.php',
   ],
 ]);
-
 $res = curl_exec($ch);
 curl_close($ch);
 
-$data  = json_decode($res ?? '', true);
+$data  = json_decode($res, true);
 $token = $data['access_token'] ?? null;
 
+// 3) Decap'e geri bildir
 header('Content-Type: text/html; charset=utf-8');
 if (!$token) {
-  // Basit debug metni, 3 sn göster sonra kapan
-  echo "<pre>Token alınamadı:\n" . htmlspecialchars($res ?? 'boş') . "</pre>";
-  echo "<script>setTimeout(()=>{window.opener.postMessage('authorization:github:denied','*');window.close();},3000)</script>";
+  echo "<script>window.opener.postMessage('authorization:github:denied','*');window.close();</script>";
   exit;
 }
 
-// Decap'in beklediği format
 $payload = json_encode(['token' => $token, 'provider' => 'github']);
-echo "<script>
-  window.opener.postMessage('authorization:github:success:{$payload}', '*');
-  window.close();
-</script>";
+echo "<script>window.opener.postMessage('authorization:github:success:{$payload}','*');window.close();</script>";

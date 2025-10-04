@@ -1,4 +1,5 @@
 <?php
+// public/blog/admin/oauth/auth.php
 require __DIR__ . '/config.secret.php';
 session_start();
 
@@ -8,10 +9,9 @@ $_SESSION['oauth_state'] = $state;
 $params = http_build_query([
   'client_id'    => GITHUB_CLIENT_ID,
   'redirect_uri' => 'https://mustafaguler.me/blog/admin/oauth/callback.php',
-  'scope'        => 'repo',
+  'scope'        => 'repo,user',
   'state'        => $state,
-  'allow_signup' => 'false',
 ]);
 
-header('Content-Type: text/html; charset=utf-8');
-echo "<script>location.href='https://github.com/login/oauth/authorize?$params'</script>";
+header('Location: https://github.com/login/oauth/authorize?' . $params);
+exit;
