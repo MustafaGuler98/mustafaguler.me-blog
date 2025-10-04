@@ -1,24 +1,27 @@
 ---
 import Base from '../../layouts/Base.astro';
 import { getCollection } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
 
-const posts = await getCollection('posts', p => p.data.lang === 'en' && !p.data.draft);
-const sorted = posts.sort((a,b)=> +b.data.pubDate - +a.data.pubDate);
+const posts = await getCollection('posts', (p) => p.data.lang === 'en' && !p.data.draft);
+const sorted = posts.sort((a, b) => +b.data.pubDate - +a.data.pubDate);
 
-// "en/" önekini kırp
-const items = sorted.map(p => ({
+const items = sorted.map((p: CollectionEntry<'posts'>) => ({
   title: p.data.title,
   date:  p.data.pubDate,
-  slug:  p.slug.replace(/^en\//, ''),   // << important
+  slug:  p.slug.replace(/^en\//, ''),    // "hello-world"
+}));
 ---
 <Base title="English Posts" lang="en">
   <h1>English Posts</h1>
   <ul>
-    {items.map(p => (
+    {items.map((p) => (
       <li>
-        <a href={`${p.slug}/`}>{p.title}</a>
+        {/* Yine RELATIVE */}
+        <a href={`${p.slug}`}>{p.title}</a>
         <small> — {p.date.toISOString().slice(0,10)}</small>
       </li>
     ))}
   </ul>
 </Base>
+

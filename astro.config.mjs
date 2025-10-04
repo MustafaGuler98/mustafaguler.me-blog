@@ -1,17 +1,14 @@
 import { defineConfig } from 'astro/config';
 
-const SITE = process.env.SITE_URL || 'https://mustafaguler.me';
-const BASE = process.env.BLOG_BASE || '/blog/'; 
 export default defineConfig({
-  site: SITE,
-  base: BASE,
+  site: 'https://mustafaguler.me',
+  base: '/blog',                
   i18n: {
     locales: ['tr', 'en'],
     defaultLocale: 'tr',
     routing: {
       prefixDefaultLocale: true,
-      redirectToDefaultLocale: true
-    }
-  }
+      redirectToDefaultLocale: true,
+    },
+  },
 });
-

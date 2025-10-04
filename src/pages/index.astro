@@ -1,11 +1,19 @@
+---
+const BASE = import.meta.env.BASE_URL;                
+const trPath = `${BASE}/tr`;     
+---
+
 <!doctype html>
 <html lang="tr">
   <head>
     <meta charset="utf-8" />
-    <meta http-equiv="refresh" content="0; url=/tr/" />
     <title>Yönlendiriliyor…</title>
+    <meta http-equiv="refresh" content={`0; url=${trPath}`} />
   </head>
   <body>
-    <p>Yönlendiriliyor… Eğer otomatik gitmezse <a href="/tr/">/tr/</a> tıklayın.</p>
+    <p>
+      Yönlendiriliyor… Eğer otomatik gitmezse
+      <a href={trPath}>TR</a>.
+    </p>
   </body>
 </html>
