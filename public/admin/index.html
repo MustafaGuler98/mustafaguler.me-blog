@@ -2,58 +2,11 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Admin</title>
-  <meta name="robots" content="noindex" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Content Manager</title>
+  <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
+  <link href="config.yml" rel="stylesheet" type="text/css" />
 </head>
 <body>
-  <!-- Önce script'i yüklüyoruz -->
-  <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
-  <!-- Sonra ayarları tanımlayıp CMS'i başlatıyoruz -->
-  <script>
-    var config = {
-      backend: {
-        name: "github",
-        repo: "mustafaguler98/mustafaguler.me-blog",
-        branch: "main",
-        auth_type: "implicit",
-        auth_endpoint: "oauth/auth.php",
-      },
-      media_folder: "public/blog/assets/uploads",
-      public_folder: "/blog/assets/uploads",
-      site_url: "https://mustafaguler.me",
-      base_url: "/blog",
-      collections: [
-        {
-          name: "posts_tr",
-          label: "Yazılar (TR)",
-          folder: "src/content/posts/tr",
-          create: true,
-          slug: "{{slug}}",
-          extension: "md",
-          fields: [
-            { name: "title", label: "Başlık", widget: "string" },
-            { name: "description", label: "Özet", widget: "text", required: false },
-            { name: "pubDate", label: "Tarih", widget: "datetime" },
-          ],
-        },
-        {
-          name: "posts_en",
-          label: "Posts (EN)",
-          folder: "src/content/posts/en",
-          create: true,
-          slug: "{{slug}}",
-          extension: "md",
-          fields: [
-            { name: "title", label: "Title", widget: "string" },
-            { name: "description", label: "Description", widget: "text", required: false },
-            { name: "pubDate", label: "Date", widget: "datetime" },
-          ],
-        },
-      ],
-    };
-
-    // DOĞRU KULLANIM BU ŞEKİLDE
-    CMS.init(config);
-  </script>
 </body>
 </html>

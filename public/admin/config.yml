@@ -1,12 +1,14 @@
 backend:
   name: github
-  repo: mustafaguler98/mustafaguler.me-blog
-  branch: main
-  auth_endpoint: oauth/auth.php
+  repo: mustafaguler98/mustafaguler.me-blog # Format: kullanici-adi/repo-adi
+  branch: main # Çalıştığınız branch
+  auth_endpoint: oauth/auth.php # admin klasörüne göreceli yol
 
 media_folder: "public/blog/assets/uploads"
 public_folder: "/blog/assets/uploads"
 
+# Bu ayarlar Decap'in kendisi için değil, sitenizin derlenmesi içindir.
+# Onları burada tutmakta bir sakınca yok.
 site_url: "https://mustafaguler.me"
 base_url: "/blog"
 
