@@ -2,25 +2,26 @@
 <html lang="tr">
   <head>
     <meta charset="utf-8" />
+    <meta name="robots" content="noindex" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Decap CMS</title>
-    <link rel="icon" href="/blog/admin/favicon.ico" />
-    <!-- ÖNEMLİ: Sadece 1 kez yükleniyor -->
-    <script>window.CMS_MANUAL_INIT = true;</script>
-    <link rel="stylesheet" href="https://unpkg.com/decap-cms@^3/dist/decap-cms.css">
+    <style>
+      /* basit bir reset; beyaz ekran olsa bile loader görünür */
+      html,body,#nc-root { height: 100%; margin: 0; }
+    </style>
+    <!-- Decap CMS -->
+    <script src="https://unpkg.com/decap-cms@3.8.4/dist/decap-cms.js"></script>
+    <!-- (opsiyonel) widget/preview ekleyeceksen burada JS eklenir -->
   </head>
   <body>
-    <!-- Decap buraya mount olacak -->
-    <div id="nc-root"></div>
-
-    <script src="https://unpkg.com/decap-cms@^3/dist/decap-cms.js"></script>
     <script>
-      // DOM hazır olduktan sonra tek bir kez init et
-      document.addEventListener('DOMContentLoaded', function () {
-        CMS.init({
-          config: { load_config_file: true, path: 'config.yml' },
-        });
-      });
+      fetch('config.yml', {cache: 'no-store'})
+        .then(r => {
+          console.log('config.yml content-type:', r.headers.get('content-type'));
+          return r.text();
+        })
+        .then(t => console.log('config.yml length:', t.length))
+        .catch(e => console.error('config.yml fetch error', e));
     </script>
   </body>
 </html>

@@ -1,20 +1,22 @@
-# public/blog/admin/oauth/.htaccess
-# Sadece auth.php ve callback.php çalışsın
-<Files "auth.php">
+# YAML mime
+AddType text/yaml .yml
+AddType text/yaml .yaml
+
+# (Varsa) BasicAuth kuralın burada olabilir, ama oauth klasörünü dışarıda bırak:
+# Örn:
+# <FilesMatch "^(?!oauth/).*$">
+#   AuthType Basic
+#   AuthName "Restricted"
+#   AuthUserFile /home/.../public_html/blog/admin/.htpasswd
+#   Require valid-user
+# </FilesMatch>
+
+# OAuth klasörü açık kalsın
+<Directory "/home/USERNAME/public_html/blog/admin/oauth">
   Require all granted
-</Files>
+</Directory>
 
-<Files "callback.php">
-  Require all granted
+# (İsteğe bağlı) cache patlatma
+<Files "config.yml">
+  Header set Cache-Control "no-cache, no-store, must-revalidate"
 </Files>
-
-# Sır bilgiler burada, dışarı kapalı
-<Files "config.secret.php">
-  Require all denied
-</Files>
-
-# YAML config'in doğru content-type ile servis edilmesi (Decap için önemli)
-<IfModule mod_mime.c>
-  AddType text/yaml .yml
-  AddType text/yaml .yaml
-</IfModule>
