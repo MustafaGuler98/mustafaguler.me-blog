@@ -5,55 +5,64 @@
     <meta name="robots" content="noindex" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Decap Admin</title>
+    <style>
+      /* Decap bazı temalarda body içeriğini temizleyip yeniden çiziyor.
+         Net bir kök verelim ki removeChild/mount tutarlı olsun. */
+      #nc-root { min-height: 100vh; }
+    </style>
+
+    <script>
+      /* Bazı ortamlarda Decap, loader'ı body'den silerken NotFoundError fırlatıyor.
+         Bu shim sadece "NotFoundError" durumunu yutar, başka hataları değiştirmez. */
+      (function(){
+        const _remove = Element.prototype.removeChild;
+        Element.prototype.removeChild = function(child){
+          try { return _remove.call(this, child); }
+          catch (e) {
+            if (e && e.name === 'NotFoundError') return child;
+            throw e;
+          }
+        };
+      })();
+    </script>
   </head>
+
   <body>
-    <!-- Tek CDN. Çift script beyaz ekran ve removeChild hatası üretir -->
+    <!-- Decap'ın güvenle mount edeceği kök -->
+    <div id="nc-root"></div>
+
+    <!-- Tek CDN (çift script kesinlikle koyma) -->
     <script src="https://unpkg.com/decap-cms@3.1.0/dist/decap-cms.js"></script>
 
     <script>
-      // Eski/yanlış anahtarları temizle (tam temiz başlangıç)
+      // Temiz başlangıç
       ['decap-cms.user','decap-cms-user','netlify-cms-user'].forEach(k => localStorage.removeItem(k));
 
-      // Decap'ı dosyadan okusun ve cache kullanmasın
+      // Config'i dosyadan oku (cache kapalı) ve manuel başlat
       window.CMS_MANUAL_INIT = true;
       fetch('config.yml', { cache: 'no-store' })
-        .then(r => {
-          if (!r.ok) throw new Error('config.yml ' + r.status);
-          return r.text();
-        })
+        .then(r => { if (!r.ok) throw new Error('config.yml ' + r.status); return r.text(); })
         .then(() => CMS.init({ config: { load_config_file: true } }))
         .catch(e => { document.body.innerHTML = '<pre>config.yml okunamadı: ' + e + '</pre>'; });
 
-      // *** KRİTİK: OAuth popup mesajını biz de yakalayıp garanti altına alıyoruz ***
-      // Decap kendi handler'ını da çalıştırır, ama biz token'ı iki anahtar adıyla da basıyoruz.
+      // OAuth popup mesajını garantiye al: token'ı hem yeni hem eski anahtar adlarıyla yaz
       function handleAuthMessage(ev) {
         try {
-          // yalnızca aynı origin'den gelen mesajı kabul et
           if (ev.origin !== window.location.origin) return;
-
           const msg = String(ev.data || '');
           if (!msg.startsWith('authorization:github:success:')) return;
 
           const payload = JSON.parse(msg.replace('authorization:github:success:', ''));
-
           if (payload && payload.token) {
-            const userObj = JSON.stringify({ token: payload.token, provider: 'github' });
-
-            // Eski ve yeni isimlerle yaz (Decap / Netlify CMS uyumu)
-            localStorage.setItem('decap-cms-user', userObj);
-            localStorage.setItem('decap-cms.user', userObj);      // bazı sürümler noktalı adı da okuyor
-            localStorage.setItem('netlify-cms-user', userObj);
-
-            // provider anahtarlarını da tekilleştir
+            const user = JSON.stringify({ token: payload.token, provider: 'github' });
+            localStorage.setItem('decap-cms-user', user);
+            localStorage.setItem('decap-cms.user', user);
+            localStorage.setItem('netlify-cms-user', user);
             localStorage.setItem('decap-cms-provider', 'github');
             localStorage.setItem('netlify-cms-provider', 'github');
-
-            // temiz bir yeniden yükleme
             window.location.reload();
           }
-        } catch (e) {
-          console.error('Auth message parse error:', e);
-        }
+        } catch (e) { console.error('Auth message parse error:', e); }
       }
       window.addEventListener('message', handleAuthMessage, false);
     </script>
