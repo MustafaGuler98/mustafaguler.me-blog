@@ -1,0 +1,49 @@
+backend:
+  name: github
+  repo: mustafaguler98/mustafaguler.me-blog
+  branch: main
+  base_url: https://YOUR-OAUTH-APP.vercel.app  # ↓ 3. adımda kuracağımız köprü
+  auth_endpoint: /auth
+
+media_folder: "public/blog/assets/uploads"
+public_folder: "/blog/assets/uploads"
+
+site_url: "https://mustafaguler.me"
+base_url: "/blog"
+
+collections:
+  - name: "posts_tr"
+    label: "Yazılar (TR)"
+    folder: "src/content/posts/tr"
+    create: true
+    slug: "{{slug}}"
+    extension: "md"
+    fields:
+      - { name: "title", label: "Başlık", widget: "string" }
+      - { name: "description", label: "Özet", widget: "text", required: false }
+      - { name: "pubDate", label: "Tarih", widget: "datetime" }
+      - { name: "updated", label: "Güncellendi", widget: "datetime", required: false }
+      - { name: "tags", label: "Etiketler", widget: "list", required: false }
+      - { name: "cover", label: "Kapak Görseli", widget: "image", required: false }
+      - { name: "translationOf", label: "Çeviri Anahtarı", widget: "string", required: false }
+      - { name: "draft", label: "Taslak", widget: "boolean", default: false }
+      - { name: "lang", label: "Dil", widget: "hidden", default: "tr" }
+      - { name: "body", label: "İçerik", widget: "markdown" }
+
+  - name: "posts_en"
+    label: "Posts (EN)"
+    folder: "src/content/posts/en"
+    create: true
+    slug: "{{slug}}"
+    extension: "md"
+    fields:
+      - { name: "title", label: "Title", widget: "string" }
+      - { name: "description", label: "Description", widget: "text", required: false }
+      - { name: "pubDate", label: "Date", widget: "datetime" }
+      - { name: "updated", label: "Updated", widget: "datetime", required: false }
+      - { name: "tags", label: "Tags", widget: "list", required: false }
+      - { name: "cover", label: "Cover Image", widget: "image", required: false }
+      - { name: "translationOf", label: "Translation Key", widget: "string", required: false }
+      - { name: "draft", label: "Draft", widget: "boolean", default: false }
+      - { name: "lang", label: "Lang", widget: "hidden", default: "en" }
+      - { name: "body", label: "Body", widget: "markdown" }
