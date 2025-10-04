@@ -7,21 +7,55 @@
     <title>Decap Admin</title>
   </head>
   <body>
-    <!-- ÖNEMLİ: Decap React uygulaması buraya render eder -->
-    <div id="nc-root"></div>
+    <!-- Tek CDN. ÇİFT YÜKLEME YOK! (v3.0.10'a pinledik + cache-buster) -->
+    <script src="https://unpkg.com/decap-cms@3.0.10/dist/decap-cms.js?v=3010"></script>
 
-    <!-- Tek bir CDN; ikinci bir decap-cms script’i yükleme -->
-    <script src="https://unpkg.com/decap-cms@3.1.0/dist/decap-cms.js"></script>
-
-    <!-- Config'i dosyadan oku (standart) -->
     <script>
-      // Eski/yanlış oturum takıldıysa temizlesin; sorun çıkarmasın
-      // (bu satır olmasa da çalışır; güvenli temizlik)
-      try { localStorage.removeItem('netlify-cms-user'); } catch(e) {}
+      // Eski/yanlış cache’i temizle (sende netlify-cms-user hiç yoktu zaten)
+      localStorage.removeItem('netlify-cms-user');
 
-      // Varsayılan davranış: config.yml otomatik yüklensin
-      // (manuel init’e gerek yok)
-      // CMS.init() çağrısı gerekmiyor; Decap kendi yapıyor.
+      // OAuth pop-up’tan gelen mesajı YAKALA ve TOKEN’I KAYDET
+      (function attachAuthListener() {
+        const PREFIX = 'authorization:github:success:';
+        window.addEventListener('message', (event) => {
+          try {
+            // İstersen domain doğrulaması (aynı origin ise gerekmez):
+            // if (!event.origin.includes('mustafaguler.me')) return;
+
+            const raw = String(event.data || '');
+            if (!raw.startsWith(PREFIX)) return;
+
+            const payload = JSON.parse(raw.slice(PREFIX.length));
+            const token = payload && payload.token;
+            if (!token) return;
+
+            // Decap v3’ün okuduğu anahtarlar:
+            localStorage.setItem('decap-cms-user', JSON.stringify({ token }));
+            localStorage.setItem('decap-cms-provider', 'github');
+
+            // ESKİ anahtar varsa ileride karışmasın diye temizleyebiliriz:
+            localStorage.removeItem('netlify-cms-user');
+            localStorage.removeItem('netlify-cms-provider');
+
+            // Token yazıldı; UI’yı yenileyelim
+            window.location.reload();
+          } catch (e) {
+            console.error('Auth bridge error', e);
+          }
+        }, false);
+      })();
+
+      // Config'i dosyadan, cachesiz yükletelim (removeChild hatası vs. için sağlam)
+      window.CMS_MANUAL_INIT = true;
+      fetch('config.yml', { cache: 'no-store' })
+        .then(r => { if (!r.ok) throw new Error('config.yml ' + r.status); return r.text(); })
+        .then(() => {
+          CMS.init({ config: { load_config_file: true } });
+        })
+        .catch((e) => {
+          document.body.innerHTML =
+            '<pre style="padding:16px">config.yml okunamadı:\n' + String(e) + '</pre>';
+        });
     </script>
   </body>
 </html>
