@@ -1,18 +1,15 @@
 <?php
-// public/blog/admin/oauth/callback.php
 require __DIR__ . '/config.secret.php';
 session_start();
 
-// 1) state doğrulaması
 if (!isset($_GET['code']) || (($_GET['state'] ?? '') !== ($_SESSION['oauth_state'] ?? ''))) {
   header('Content-Type: text/html; charset=utf-8');
-  echo "<script>window.opener.postMessage('authorization:github:denied', '*');window.close();</script>";
+  echo "<script>window.opener.postMessage('authorization:github:denied', '*'); window.close();</script>";
   exit;
 }
 
 $code = $_GET['code'];
 
-// 2) access_token al
 $ch = curl_init('https://github.com/login/oauth/access_token');
 curl_setopt_array($ch, [
   CURLOPT_RETURNTRANSFER => true,
@@ -31,12 +28,16 @@ curl_close($ch);
 $data  = json_decode($res, true);
 $token = $data['access_token'] ?? null;
 
-// 3) Decap'e geri bildir
 header('Content-Type: text/html; charset=utf-8');
+
 if (!$token) {
-  echo "<script>window.opener.postMessage('authorization:github:denied','*');window.close();</script>";
+  echo "<script>window.opener.postMessage('authorization:github:denied', '*'); window.close();</script>";
   exit;
 }
 
+// Decap'in beklediği JSON payload
 $payload = json_encode(['token' => $token, 'provider' => 'github']);
-echo "<script>window.opener.postMessage('authorization:github:success:{$payload}','*');window.close();</script>";
+echo "<script>
+  window.opener.postMessage('authorization:github:success:' + $payload, '*');
+  window.close();
+</script>";
