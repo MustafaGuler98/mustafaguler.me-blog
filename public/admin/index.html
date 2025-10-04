@@ -4,44 +4,39 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex" />
+    <!-- Başka JS'leri engellemek için çok dar CSP -->
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src * data: blob:; connect-src *">
     <title>Decap Admin</title>
-    <!-- Tek CDN -->
+    <!-- Tek ve tek bir CDN -->
     <script src="https://unpkg.com/decap-cms@3.0.10/dist/decap-cms.js"></script>
   </head>
   <body>
     <script>
       window.CMS_MANUAL_INIT = true;
 
-      function handleAuthMessage(e) {
-        if (!e || typeof e.data !== "string") return;
-        if (!e.data.startsWith("authorization:github:")) return;
+      // OAuth popup'tan gelen token'ı yakala
+      window.addEventListener('message', (e) => {
+        if (!e || typeof e.data !== 'string' || !e.data.startsWith('authorization:github:')) return;
         try {
-          const payload = JSON.parse(e.data.split(":").slice(2).join(":"));
+          const payload = JSON.parse(e.data.split(':').slice(2).join(':'));
           if (payload && payload.token) {
-            localStorage.setItem("decap-cms-user", JSON.stringify({ token: payload.token }));
-            localStorage.setItem("decap-cms-provider", "github");
-            console.log("Decap token kaydedildi, sayfa yenileniyor…");
+            localStorage.setItem('decap-cms-user', JSON.stringify({ token: payload.token }));
+            localStorage.setItem('decap-cms-provider', 'github');
             location.reload();
           }
-        } catch (err) {
-          console.error("Auth payload parse edilemedi:", err, e.data);
-        }
-      }
-      window.addEventListener("message", handleAuthMessage, false);
+        } catch (err) { console.error('Auth parse hatası:', err, e.data); }
+      }, false);
 
-      (function waitForCMS() {
-        if (window.CMS && typeof window.CMS.init === "function") {
-          fetch("config.yml", { cache: "no-store" })
-            .then(() => {
-              CMS.init({ config: { load_config_file: true } });
-              console.log("CMS init edildi.");
-            })
-            .catch((e) => {
-              document.body.innerHTML =
-                "<pre>config.yml okunamadı:\n" + (e && e.toString()) + "</pre>";
-            });
+      // CMS yüklenince config.yml ile başlat
+      (function wait() {
+        if (window.CMS && typeof window.CMS.init === 'function') {
+          fetch('config.yml', { cache: 'no-store' })
+            .then(() => CMS.init({ config: { load_config_file: true } }))
+            .catch(e => { document.body.innerHTML =
+              '<pre>config.yml okunamadı:\n' + (e && e.toString()) + '</pre>'; });
         } else {
-          setTimeout(waitForCMS, 50);
+          setTimeout(wait, 50);
         }
       })();
     </script>
