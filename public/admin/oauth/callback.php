@@ -1,18 +1,19 @@
 <?php
-// public/blog/admin/oauth/callback.php
 require __DIR__ . '/config.secret.php';
 session_start();
 
-// 1) state doğrulaması
+// --- 1) state doğrula
 if (!isset($_GET['code']) || (($_GET['state'] ?? '') !== ($_SESSION['oauth_state'] ?? ''))) {
   header('Content-Type: text/html; charset=utf-8');
-  echo "<script>window.opener.postMessage('authorization:github:denied', '*'); window.close();</script>";
+  echo "<!doctype html><meta charset=utf-8><body>STATE MISMATCH
+<script>
+  window.opener && window.opener.postMessage('authorization:github:denied', '*');
+  setTimeout(()=>window.close(), 2000);
+</script>";
   exit;
 }
 
-$code = $_GET['code'];
-
-// 2) GitHub access token al
+// --- 2) token iste
 $ch = curl_init('https://github.com/login/oauth/access_token');
 curl_setopt_array($ch, [
   CURLOPT_RETURNTRANSFER => true,
@@ -21,7 +22,7 @@ curl_setopt_array($ch, [
   CURLOPT_POSTFIELDS     => [
     'client_id'     => GITHUB_CLIENT_ID,
     'client_secret' => GITHUB_CLIENT_SECRET,
-    'code'          => $code,
+    'code'          => $_GET['code'],
     'redirect_uri'  => 'https://mustafaguler.me/blog/admin/oauth/callback.php',
   ],
 ]);
@@ -31,19 +32,41 @@ curl_close($ch);
 $data  = json_decode($res, true);
 $token = $data['access_token'] ?? null;
 
-// 3) Decap'in beklediği mesaj formatı
+// --- 3) çıktıyı tek sayfada göster + mesaj gönder
 header('Content-Type: text/html; charset=utf-8');
 
 if (!$token) {
-  echo "<script>window.opener.postMessage('authorization:github:denied', '*'); window.close();</script>";
+  echo "<!doctype html><meta charset=utf-8><body>TOKEN YOK / HATA
+<pre>".htmlspecialchars($res ?: 'bos cevap')."</pre>
+<script>
+  window.opener && window.opener.postMessage('authorization:github:denied', '*');
+  setTimeout(()=>window.close(), 4000);
+</script>";
   exit;
 }
 
-$payload = json_encode(['token' => $token, 'provider' => 'github']);
+// payload JS tarafında JSON.stringify ile tekrar oluşturulacak
+$payload = ['token' => $token, 'provider' => 'github'];
+echo "<!doctype html><meta charset=utf-8><body style='font:14px system-ui'>
+<b>Callback aktif</b><br>
+<div id='log'></div>
+<script>
+try {
+  const payload = ".json_encode($payload, JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE).";
+  const msg = 'authorization:github:success:' + JSON.stringify(payload);
 
-// ÖNEMLİ: Aşağıdaki echo + çift tırnak kullanımı sayesinde {$payload} PHP tarafından stringe gömülür
-echo "<script>
-  window.opener.postMessage('authorization:github:success:{$payload}', '*');
-  // içeriği görmek istersen şimdilik 3sn geciktirebilirsin:
-  setTimeout(() => window.close(), 3000);
+  const log = (t)=>document.getElementById('log').innerHTML += t+'<br>';
+
+  // Teşhis: opener var mı?
+  if (!window.opener) {
+    log('opener: YOK (mesaj gonderemem).');
+  } else {
+    window.opener.postMessage(msg, '*');
+    log('gonderildi: ' + msg.replace(payload.token, '***TOK***'));
+  }
+
+} catch (e) {
+  document.getElementById('log').innerText = 'JS HATASI: '+ e.message;
+}
+setTimeout(()=>window.close(), 3000);
 </script>";
