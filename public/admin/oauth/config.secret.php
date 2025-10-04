@@ -1,0 +1,3 @@
+<?php
+const GITHUB_CLIENT_ID     = 'Ov23li54HLJCIVi9f30t';
+const GITHUB_CLIENT_SECRET = 'f90e16b7ea7183da26e8041ddcda597ca7271f2c';

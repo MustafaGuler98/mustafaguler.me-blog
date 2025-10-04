@@ -2,8 +2,8 @@ backend:
   name: github
   repo: mustafaguler98/mustafaguler.me-blog
   branch: main
-  base_url: https://YOUR-OAUTH-APP.vercel.app  # ↓ 3. adımda kuracağımız köprü
-  auth_endpoint: /auth
+  base_url: https://mustafaguler.me/blog/admin/oauth
+  auth_endpoint: /auth.php
 
 media_folder: "public/blog/assets/uploads"
 public_folder: "/blog/assets/uploads"
