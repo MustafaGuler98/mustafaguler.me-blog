@@ -2,10 +2,7 @@
 require __DIR__ . '/config.secret.php';
 
 session_start();
-if (!isset($_GET['code'])) {
-  $err = 'Missing code';
-  goto error;
-}
+if (!isset($_GET['code'])) { $err = 'Missing code'; goto error; }
 if (!isset($_GET['state']) || !hash_equals($_SESSION['oauth_state'] ?? '', $_GET['state'])) {
   $err = 'Invalid state';
   goto error;
@@ -16,13 +13,12 @@ $clientId    = GITHUB_CLIENT_ID;
 $clientSecret= GITHUB_CLIENT_SECRET;
 $redirectUri = 'https://mustafaguler.me/blog/admin/oauth/callback.php';
 
-// Token iste
 $ch = curl_init('https://github.com/login/oauth/access_token');
 curl_setopt_array($ch, [
-  CURLOPT_POST       => true,
-  CURLOPT_HTTPHEADER => ['Accept: application/json'],
+  CURLOPT_POST           => true,
+  CURLOPT_HTTPHEADER     => ['Accept: application/json'],
   CURLOPT_RETURNTRANSFER => true,
-  CURLOPT_POSTFIELDS => http_build_query([
+  CURLOPT_POSTFIELDS     => http_build_query([
     'client_id'     => $clientId,
     'client_secret' => $clientSecret,
     'code'          => $code,
@@ -35,7 +31,6 @@ $data = json_decode($resp, true);
 $token = $data['access_token'] ?? null;
 if (!$token) { $err = 'No access_token'; goto error; }
 
-// 🔹 Decap/Netlify CMS beklenen format: authorization:github:success:<TOKEN>
 header('Content-Type: text/html; charset=utf-8');
 ?>
 <!doctype html>
@@ -44,6 +39,7 @@ header('Content-Type: text/html; charset=utf-8');
   (function () {
     try {
       var payload = 'authorization:github:success:' + <?= json_encode($token) ?>;
+      // Decap beklenen mesaj:
       window.opener && window.opener.postMessage(payload, '*');
       window.close();
     } catch (e) {
@@ -64,7 +60,6 @@ header('Content-Type: text/html; charset=utf-8');
   (function () {
     var payload = 'authorization:github:error:<?= htmlspecialchars($err ?? "unknown", ENT_QUOTES) ?>';
     window.opener && window.opener.postMessage(payload, '*');
-    // window.close(); // hatayı görmek istersen kapatma
   })();
 </script>
 <body>OAuth error: <?= htmlspecialchars($err ?? "unknown") ?></body>
