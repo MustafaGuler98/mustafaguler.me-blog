@@ -6,7 +6,11 @@
     <meta name="robots" content="noindex" />
     <!-- Başka JS'leri engellemek için çok dar CSP -->
     <meta http-equiv="Content-Security-Policy"
-          content="default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src * data: blob:; connect-src *">
+      content="default-src 'self';
+               script-src 'self' https://unpkg.com 'unsafe-inline';
+               style-src 'self' 'unsafe-inline';
+               img-src * data: blob:;
+               connect-src *">
     <title>Decap Admin</title>
     <!-- Tek ve tek bir CDN -->
     <script src="https://unpkg.com/decap-cms@3.0.10/dist/decap-cms.js"></script>
